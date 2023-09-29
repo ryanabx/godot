@@ -258,6 +258,13 @@ void Variant::set_named(const StringName &p_member, const Variant &p_value, bool
 			r_valid = true;
 		}
 
+	} else if (type == Variant::ARRAY) {
+		Array *array = VariantGetInternalPtr<Array>::get_ptr(this);
+		int index = array->find_member(p_member);
+		if (index >= 0) {
+			array->set(index, p_value);
+			r_valid = true;
+		}
 	} else {
 		r_valid = false;
 	}
@@ -295,6 +302,15 @@ Variant Variant::get_named(const StringName &p_member, bool &r_valid) const {
 			r_valid = false;
 		}
 
+	} else if (type == Variant::ARRAY) {
+		const Variant *v = VariantGetInternalPtr<Array>::get_ptr(this)->getptr(p_member);
+		if (v) {
+			r_valid = true;
+
+			return *v;
+		} else {
+			r_valid = false;
+		}
 	} else {
 		r_valid = false;
 	}
