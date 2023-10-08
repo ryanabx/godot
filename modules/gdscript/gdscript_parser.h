@@ -91,6 +91,7 @@ public:
 	struct ReturnNode;
 	struct SelfNode;
 	struct SignalNode;
+	struct StructNode;
 	struct SubscriptNode;
 	struct SuiteNode;
 	struct TernaryOpNode;
@@ -1040,6 +1041,10 @@ public:
 		SignalNode() {
 			type = SIGNAL;
 		}
+	};
+
+	struct StructNode : public Node {
+
 	};
 
 	struct SubscriptNode : public ExpressionNode {
