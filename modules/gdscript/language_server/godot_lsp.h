@@ -559,17 +559,17 @@ struct SemanticTokensOptions {
 	/**
 	 * Server supports providing semantic tokens for a full document.
 	 */
-	bool full = false;
+	bool full = true;
 
 	SemanticTokensOptions() {
 		/**
 		 * The token types a server uses.
 		 */
-		legend["tokenTypes"] = SemanticTokens::Types::Types;
+		legend["tokenTypes"] = SemanticTokenTypes::Types;
 		/**
 		 * The token modifiers a server uses.
 		 */
-		legend["tokenModifiers"] = SemanticTokens::Modifiers::Modifiers;
+		legend["tokenModifiers"] = SemanticTokenModifiers::Modifiers;
 
 	}
 
@@ -582,76 +582,102 @@ struct SemanticTokensOptions {
 	}
 };
 
-namespace SemanticTokens {
-
-	namespace Types {
-		static const int Class = 0;
-
-		static const int Enum = 1;
-
-		static const int Interface = 2;
-
-		static const int Struct = 3;
-
-		static const int TypeParameter = 4;
-
-		static const int Parameter = 5;
-
-		static const int Variable = 6;
-
-		static const int EnumMember = 7;
-
-		static const int Event = 8;
-
-		static const int Method = 9;
-
-		static const int Keyword = 10;
-
-		static const int Comment = 11;
-
-		static const int Number = 12;
-
-		static const int Operator = 13;
-
-		static const int Decorator = 14;
-
-		static String const Types[] = {
-			"class", "enum", "interface",
-			"struct", "typeParameter", "parameter",
-			"variable", "enumMember", "event", "method",
-			"keyword", "comment", "number", "operator",
-			"decorator"
-		};
+struct SemanticTokensParams {
+	TextDocumentIdentifier textDocument;
+	_FORCE_INLINE_ void load(const Dictionary &p_params) {
+		textDocument.load(p_params["textDocument"]);
 	}
+};
 
-	namespace Modifiers {
-		static const int Declaration = 0;
-
-		static const int Definition = 1;
-
-		static const int Static = 2;
-
-		static const int Deprecated = 3;
-
-		static const int Abstract = 4;
-
-		static const int Async = 5;
-
-		static const int Documentation = 6;
-
-		static const int DefaultLibrary = 7;
-
-		static String const Modifiers[] = {
-			"declaration", "definition",
-			"static", "deprecated", "abstract",
-			"async", "documentation",
-			"defaultLibrary"
-		};
+struct SemanticTokens {
+	Vector<int> data;
+	Dictionary to_json() {
+		Dictionary dict;
+		dict["data"] = data;
+		return dict;
 	}
+};
 
+namespace SemanticTokenTypes {
 
+static const int Type = 0;
 
-}
+static const int Class = 1;
+
+static const int Enum = 2;
+
+static const int Interface = 3;
+
+static const int Struct = 4;
+
+static const int TypeParameter = 5;
+
+static const int Parameter = 6;
+
+static const int Variable = 7;
+
+static const int Property = 8;
+
+static const int EnumMember = 9;
+
+static const int Event = 10;
+
+static const int Function = 11;
+
+static const int Method = 12;
+
+static const int Macro = 13;
+
+static const int Keyword = 14;
+
+static const int Modifier = 15;
+
+static const int Comment = 16;
+
+static const int Str = 17;
+
+static const int Number = 18;
+
+static const int Regexp = 19;
+
+static const int Operator = 20;
+
+static const int Decorator = 21;
+
+static Vector<String> const Types = {
+	"type", "class", "enum", "interface", "struct",
+	"typeParameter", "parameter", "variable", "property", "enumMember",
+	"event", "function", "method", "macro", "keyword", "modifier",
+	"comment", "string", "number", "regexp", "operator", "decorator"
+};
+}; //namespace SemanticTokenTypes
+
+namespace SemanticTokenModifiers {
+static const int Declaration = 1;
+
+static const int Definition = 2;
+
+static const int Readonly = 4;
+
+static const int Static = 8;
+
+static const int Deprecated = 16;
+
+static const int Abstract = 32;
+
+static const int Async = 64;
+
+static const int Modification = 128;
+
+static const int Documentation = 256;
+
+static const int DefaultLibrary = 512;
+
+static Vector<String> const Modifiers = {
+	"declaration", "definition", "readonly", "static", "deprecated",
+	"abstract", "async", "modification", "documentation", "defaultLibrary"
+};
+}; //namespace SemanticTokenModifiers
 
 /**
  * Folding range provider options.
@@ -1872,7 +1898,7 @@ struct ServerCapabilities {
 	/**
 	 * The server provides code lens.
 	 */
-	CodeLensOptions codeLensProvider;
+	CodeLensOptions codeLense;
 
 	/**
 	 * The server provides document formatting.
@@ -1895,6 +1921,9 @@ struct ServerCapabilities {
 	 * `prepareSupport` in its initial `initialize` request.
 	 */
 	RenameOptions renameProvider;
+
+
+	SemanticTokensOptions semanticTokensProvider;
 
 	/**
 	 * The server provides document link support.
@@ -1937,6 +1966,7 @@ struct ServerCapabilities {
 		//dict["codeLensProvider"] = codeLensProvider.to_json();
 		dict["documentOnTypeFormattingProvider"] = documentOnTypeFormattingProvider.to_json();
 		dict["renameProvider"] = renameProvider.to_json();
+		dict["semanticTokensProvider"] = semanticTokensProvider.to_json();
 		dict["documentLinkProvider"] = documentLinkProvider.to_json();
 		dict["colorProvider"] = false; // colorProvider.to_json();
 		dict["foldingRangeProvider"] = false; //foldingRangeProvider.to_json();

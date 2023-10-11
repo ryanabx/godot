@@ -66,6 +66,7 @@ public:
 	Dictionary resolve(const Dictionary &p_params);
 	Dictionary rename(const Dictionary &p_params);
 	Variant prepareRename(const Dictionary &p_params);
+	Dictionary full(const Dictionary &p_params);
 	Array references(const Dictionary &p_params);
 	Array foldingRange(const Dictionary &p_params);
 	Array codeLens(const Dictionary &p_params);

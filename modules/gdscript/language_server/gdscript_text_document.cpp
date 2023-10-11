@@ -51,6 +51,7 @@ void GDScriptTextDocument::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("resolve"), &GDScriptTextDocument::resolve);
 	ClassDB::bind_method(D_METHOD("rename"), &GDScriptTextDocument::rename);
 	ClassDB::bind_method(D_METHOD("prepareRename"), &GDScriptTextDocument::prepareRename);
+	ClassDB::bind_method(D_METHOD("full"), &GDScriptTextDocument::full);
 	ClassDB::bind_method(D_METHOD("references"), &GDScriptTextDocument::references);
 	ClassDB::bind_method(D_METHOD("foldingRange"), &GDScriptTextDocument::foldingRange);
 	ClassDB::bind_method(D_METHOD("codeLens"), &GDScriptTextDocument::codeLens);
@@ -265,6 +266,65 @@ Variant GDScriptTextDocument::prepareRename(const Dictionary &p_params) {
 	// `null` -> rename not valid at current location.
 	return Variant();
 }
+
+Dictionary GDScriptTextDocument::full(const Dictionary &p_params) {
+	// List<const lsp::DocumentSymbol *> symbols;
+	// Array arr = this->find_all_symbols(params, symbols);
+	Dictionary result;
+	Dictionary params = p_params["textDocument"];
+	String uri = params["uri"];
+	String path = GDScriptLanguageProtocol::get_singleton()->get_workspace()->get_file_path(uri);
+	Array arr;
+	if (HashMap<String, ExtendGDScriptParser *>::ConstIterator parser = GDScriptLanguageProtocol::get_singleton()->get_workspace()->scripts.find(path)) {
+		lsp::DocumentSymbol symbol = parser->value->get_symbols();
+		int token;
+		int modifiers = 0;
+		switch (symbol.kind) {
+			case lsp::SymbolKind::Class:
+				token = lsp::SemanticTokenTypes::Class;
+				if (symbol.native_class == symbol.name) {
+					modifiers += lsp::SemanticTokenModifiers::DefaultLibrary;
+				}
+				break;
+			case lsp::SymbolKind::Method:
+				token = lsp::SemanticTokenTypes::Method;
+				break;
+			case lsp::SymbolKind::Function:
+				token = lsp::SemanticTokenTypes::Function;
+				break;
+			case lsp::SymbolKind::Property:
+				token = lsp::SemanticTokenTypes::Property;
+				break;
+			case lsp::SymbolKind::Variable:
+				token = lsp::SemanticTokenTypes::Variable;
+				break;
+			case lsp::SymbolKind::Constant:
+				token = lsp::SemanticTokenTypes::Variable;
+				modifiers += lsp::SemanticTokenModifiers::Readonly;
+				break;
+			case lsp::SymbolKind::Enum:
+				token = lsp::SemanticTokenTypes::Enum;
+				break;
+			case lsp::SymbolKind::EnumMember:
+				token = lsp::SemanticTokenTypes::EnumMember;
+				break;
+		}
+		if (symbol.deprecated == true) {
+			modifiers += lsp::SemanticTokenModifiers::Deprecated;
+		}
+		if (symbol.selectionRange.start.line == symbol.selectionRange.end.line) { // We only support semantic tokens on one line
+			arr.push_back(symbol.selectionRange.start.line);
+			arr.push_back(symbol.selectionRange.start.character);
+			arr.push_back(symbol.selectionRange.end.character - symbol.selectionRange.start.character);
+			arr.push_back(token);
+			arr.push_back(modifiers);
+		}
+	}
+	result["data"] = arr;
+	return result;
+}
+
+// TODO: Implement the range counterpart for semanticTokens
 
 Array GDScriptTextDocument::references(const Dictionary &p_params) {
 	Array res;
