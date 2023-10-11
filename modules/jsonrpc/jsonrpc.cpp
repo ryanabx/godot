@@ -98,6 +98,10 @@ Variant JSONRPC::process_action(const Variant &p_action, bool p_process_arr_elem
 	Variant ret;
 	if (p_action.get_type() == Variant::DICTIONARY) {
 		Dictionary dict = p_action;
+		if (dict.get("method", "") == "textDocument/semanticTokens/full") {
+			print_line("IIIIIII");
+		}
+		// print_line(dict);
 		String method = dict.get("method", "");
 		if (method.begins_with("$/")) {
 			return ret;

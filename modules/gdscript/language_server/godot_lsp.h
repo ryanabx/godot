@@ -1968,6 +1968,7 @@ struct ServerCapabilities {
 		dict["documentOnTypeFormattingProvider"] = documentOnTypeFormattingProvider.to_json();
 		dict["renameProvider"] = renameProvider.to_json();
 		dict["semanticTokensProvider"] = semanticTokensProvider.to_json();
+		print_line("made it to registering providers!");
 		dict["documentLinkProvider"] = documentLinkProvider.to_json();
 		dict["colorProvider"] = false; // colorProvider.to_json();
 		dict["foldingRangeProvider"] = false; //foldingRangeProvider.to_json();
