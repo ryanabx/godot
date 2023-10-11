@@ -543,60 +543,6 @@ struct ColorProviderOptions {
 	}
 };
 
-/**
- * Semantic token provider options
- */
-struct SemanticTokensOptions {
-	/**
-	 * The legend used by the server
-	 */
-	Dictionary legend;
-	/**
-	 * Server supports providing semantic tokens for a specific range
-	 * of a document.
-	 */
-	bool range = false;
-	/**
-	 * Server supports providing semantic tokens for a full document.
-	 */
-	bool full = true;
-
-	SemanticTokensOptions() {
-		/**
-		 * The token types a server uses.
-		 */
-		legend["tokenTypes"] = SemanticTokenTypes::Types;
-		/**
-		 * The token modifiers a server uses.
-		 */
-		legend["tokenModifiers"] = SemanticTokenModifiers::Modifiers;
-
-	}
-
-	Dictionary to_json() {
-		Dictionary dict;
-		dict["legend"] = legend;
-		dict["range"] = range;
-		dict["full"] = full;
-		return dict;
-	}
-};
-
-struct SemanticTokensParams {
-	TextDocumentIdentifier textDocument;
-	_FORCE_INLINE_ void load(const Dictionary &p_params) {
-		textDocument.load(p_params["textDocument"]);
-	}
-};
-
-struct SemanticTokens {
-	Vector<int> data;
-	Dictionary to_json() {
-		Dictionary dict;
-		dict["data"] = data;
-		return dict;
-	}
-};
 
 namespace SemanticTokenTypes {
 
@@ -678,6 +624,61 @@ static Vector<String> const Modifiers = {
 	"abstract", "async", "modification", "documentation", "defaultLibrary"
 };
 }; //namespace SemanticTokenModifiers
+
+/**
+ * Semantic token provider options
+ */
+struct SemanticTokensOptions {
+	/**
+	 * The legend used by the server
+	 */
+	Dictionary legend;
+	/**
+	 * Server supports providing semantic tokens for a specific range
+	 * of a document.
+	 */
+	bool range = false;
+	/**
+	 * Server supports providing semantic tokens for a full document.
+	 */
+	bool full = true;
+
+	SemanticTokensOptions() {
+		/**
+		 * The token types a server uses.
+		 */
+		legend["tokenTypes"] = SemanticTokenTypes::Types;
+		/**
+		 * The token modifiers a server uses.
+		 */
+		legend["tokenModifiers"] = SemanticTokenModifiers::Modifiers;
+
+	}
+
+	Dictionary to_json() {
+		Dictionary dict;
+		dict["legend"] = legend;
+		dict["range"] = range;
+		dict["full"] = full;
+		return dict;
+	}
+};
+
+struct SemanticTokensParams {
+	TextDocumentIdentifier textDocument;
+	_FORCE_INLINE_ void load(const Dictionary &p_params) {
+		textDocument.load(p_params["textDocument"]);
+	}
+};
+
+struct SemanticTokens {
+	Vector<int> data;
+	Dictionary to_json() {
+		Dictionary dict;
+		dict["data"] = data;
+		return dict;
+	}
+};
 
 /**
  * Folding range provider options.
