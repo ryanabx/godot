@@ -51,7 +51,7 @@ void GDScriptTextDocument::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("resolve"), &GDScriptTextDocument::resolve);
 	ClassDB::bind_method(D_METHOD("rename"), &GDScriptTextDocument::rename);
 	ClassDB::bind_method(D_METHOD("prepareRename"), &GDScriptTextDocument::prepareRename);
-	ClassDB::bind_method(D_METHOD("full"), &GDScriptTextDocument::full);
+	ClassDB::bind_method(D_METHOD("semanticTokens/full"), &GDScriptTextDocument::semanticTokensFull);
 	ClassDB::bind_method(D_METHOD("references"), &GDScriptTextDocument::references);
 	ClassDB::bind_method(D_METHOD("foldingRange"), &GDScriptTextDocument::foldingRange);
 	ClassDB::bind_method(D_METHOD("codeLens"), &GDScriptTextDocument::codeLens);
@@ -267,7 +267,7 @@ Variant GDScriptTextDocument::prepareRename(const Dictionary &p_params) {
 	return Variant();
 }
 
-Dictionary GDScriptTextDocument::full(const Dictionary &p_params) {
+Dictionary GDScriptTextDocument::semanticTokensFull(const Dictionary &p_params) {
 	// List<const lsp::DocumentSymbol *> symbols;
 	// Array arr = this->find_all_symbols(params, symbols);
 	Dictionary result;

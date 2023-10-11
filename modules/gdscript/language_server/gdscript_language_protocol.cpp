@@ -334,7 +334,6 @@ GDScriptLanguageProtocol::GDScriptLanguageProtocol() {
 	workspace.instantiate();
 	text_document.instantiate();
 	set_scope("textDocument", text_document.ptr());
-	set_scope("textDocument/semanticTokens", text_document.ptr());
 	set_scope("completionItem", text_document.ptr());
 	set_scope("workspace", workspace.ptr());
 	workspace->root = ProjectSettings::get_singleton()->get_resource_path();
