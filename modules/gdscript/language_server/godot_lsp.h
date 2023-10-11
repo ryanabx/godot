@@ -544,6 +544,116 @@ struct ColorProviderOptions {
 };
 
 /**
+ * Semantic token provider options
+ */
+struct SemanticTokensOptions {
+	/**
+	 * The legend used by the server
+	 */
+	Dictionary legend;
+	/**
+	 * Server supports providing semantic tokens for a specific range
+	 * of a document.
+	 */
+	bool range = false;
+	/**
+	 * Server supports providing semantic tokens for a full document.
+	 */
+	bool full = false;
+
+	SemanticTokensOptions() {
+		/**
+		 * The token types a server uses.
+		 */
+		legend["tokenTypes"] = SemanticTokens::Types::Types;
+		/**
+		 * The token modifiers a server uses.
+		 */
+		legend["tokenModifiers"] = SemanticTokens::Modifiers::Modifiers;
+
+	}
+
+	Dictionary to_json() {
+		Dictionary dict;
+		dict["legend"] = legend;
+		dict["range"] = range;
+		dict["full"] = full;
+		return dict;
+	}
+};
+
+namespace SemanticTokens {
+
+	namespace Types {
+		static const int Class = 0;
+
+		static const int Enum = 1;
+
+		static const int Interface = 2;
+
+		static const int Struct = 3;
+
+		static const int TypeParameter = 4;
+
+		static const int Parameter = 5;
+
+		static const int Variable = 6;
+
+		static const int EnumMember = 7;
+
+		static const int Event = 8;
+
+		static const int Method = 9;
+
+		static const int Keyword = 10;
+
+		static const int Comment = 11;
+
+		static const int Number = 12;
+
+		static const int Operator = 13;
+
+		static const int Decorator = 14;
+
+		static String const Types[] = {
+			"class", "enum", "interface",
+			"struct", "typeParameter", "parameter",
+			"variable", "enumMember", "event", "method",
+			"keyword", "comment", "number", "operator",
+			"decorator"
+		};
+	}
+
+	namespace Modifiers {
+		static const int Declaration = 0;
+
+		static const int Definition = 1;
+
+		static const int Static = 2;
+
+		static const int Deprecated = 3;
+
+		static const int Abstract = 4;
+
+		static const int Async = 5;
+
+		static const int Documentation = 6;
+
+		static const int DefaultLibrary = 7;
+
+		static String const Modifiers[] = {
+			"declaration", "definition",
+			"static", "deprecated", "abstract",
+			"async", "documentation",
+			"defaultLibrary"
+		};
+	}
+
+
+
+}
+
+/**
  * Folding range provider options.
  */
 struct FoldingRangeProviderOptions {
