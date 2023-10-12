@@ -136,6 +136,7 @@ void GDScriptTextDocument::initialize() {
 
 			for (const KeyValue<String, const lsp::DocumentSymbol *> &F : members) {
 				const lsp::DocumentSymbol *symbol = members.get(F.key);
+				print_line(vformat(R"(Initialize: found member %s)", symbol->name));
 				lsp::CompletionItem item = symbol->make_completion_item();
 				item.data = JOIN_SYMBOLS(String(E.key), F.key);
 				native_member_completions.push_back(item.to_json());
@@ -267,72 +268,118 @@ Variant GDScriptTextDocument::prepareRename(const Dictionary &p_params) {
 	return Variant();
 }
 
-void _evaluate_children(lsp::DocumentSymbol &p_symbol, int& line, int& start_char, int& length, int& start_char_relative, int& line_relative, Array& r_arr) {
-	Vector<lsp::DocumentSymbol> symbols = p_symbol.children;
-	for (lsp::DocumentSymbol symbol : symbols) {
-		print_line(vformat(R"(Symbol found! %s)", symbol.name));
-		int token;
-		int modifiers = 0;
-		switch (symbol.kind) {
+struct SemanticTokenResult {
+	int line;
+	int start_char;
+	int length;
+	int type;
+	int modifiers;
+
+	SemanticTokenResult() {
+		line = 0;
+		start_char = 0;
+		length = 0;
+		type = 0;
+		modifiers = 0;
+	}
+
+	SemanticTokenResult(const lsp::DocumentSymbol *symbol) {
+		switch (symbol->kind) {
 			case lsp::SymbolKind::Class:
-				token = lsp::SemanticTokenTypes::Class;
-				if (symbol.native_class == symbol.name) {
+				type = lsp::SemanticTokenTypes::Class;
+				if (symbol->native_class == symbol->name) {
 					modifiers += lsp::SemanticTokenModifiers::DefaultLibrary;
 				}
 				break;
 			case lsp::SymbolKind::Method:
-				token = lsp::SemanticTokenTypes::Method;
+				type = lsp::SemanticTokenTypes::Method;
 				break;
 			case lsp::SymbolKind::Function:
-				token = lsp::SemanticTokenTypes::Function;
+				type = lsp::SemanticTokenTypes::Function;
 				break;
 			case lsp::SymbolKind::Property:
-				token = lsp::SemanticTokenTypes::Property;
+				type = lsp::SemanticTokenTypes::Property;
 				break;
 			case lsp::SymbolKind::Variable:
-				token = lsp::SemanticTokenTypes::Variable;
+				type = lsp::SemanticTokenTypes::Variable;
 				break;
 			case lsp::SymbolKind::Constant:
-				token = lsp::SemanticTokenTypes::Variable;
+				type = lsp::SemanticTokenTypes::Variable;
 				modifiers += lsp::SemanticTokenModifiers::Readonly;
 				break;
 			case lsp::SymbolKind::Enum:
-				token = lsp::SemanticTokenTypes::Enum;
+				type = lsp::SemanticTokenTypes::Enum;
 				break;
 			case lsp::SymbolKind::EnumMember:
-				token = lsp::SemanticTokenTypes::EnumMember;
+				type = lsp::SemanticTokenTypes::EnumMember;
 				break;
 		}
-		if (symbol.deprecated == true) {
+		if (symbol->deprecated == true) {
 			modifiers += lsp::SemanticTokenModifiers::Deprecated;
 		}
-		if (symbol.selectionRange.start.line == symbol.selectionRange.end.line) { // We only support semantic tokens on one line
-			if (line > symbol.selectionRange.start.line) {
-				print_line("Oops");
-			} else if (line == symbol.selectionRange.start.line) {
-				line_relative = symbol.selectionRange.start.line - line;
-				start_char_relative = symbol.selectionRange.start.character - start_char;
-				length = symbol.selectionRange.end.character - symbol.selectionRange.start.character;
-			} else {
-				line_relative = symbol.selectionRange.start.line - line;
-				start_char_relative = symbol.selectionRange.start.character;
-				length = symbol.selectionRange.end.character - symbol.selectionRange.start.character;
-			}
-			line = symbol.selectionRange.start.line;
-			start_char = symbol.selectionRange.start.character;
-			if (start_char_relative < 0) {
-				print_line("Oh no");
-			}
-			print_line(vformat(R"("%d:%d to %d:%d")", symbol.selectionRange.start.line, symbol.selectionRange.start.character, symbol.selectionRange.end.line, symbol.selectionRange.end.character));
-			print_line(vformat(R"(%d, %d, %d, %d, %d)", line_relative, start_char_relative, length, token, modifiers));
-			r_arr.push_back(line_relative);
-			r_arr.push_back(start_char_relative);
-			r_arr.push_back(length);
-			r_arr.push_back(token);
-			r_arr.push_back(modifiers);
+		line = symbol->range.start.line;
+		start_char = symbol->range.start.character;
+		length = symbol->range.end.character - symbol->range.start.character;
+	}
+
+	Array AsAbsolute() {
+		Array arr;
+		arr.push_back(line);
+		arr.push_back(start_char);
+		arr.push_back(length);
+		arr.push_back(type);
+		arr.push_back(modifiers);
+		return arr;
+	}
+
+	Array AsRelative(SemanticTokenResult from) {
+		Array arr;
+		int delta_line;
+		int delta_char;
+		if (from.line == line) {
+			delta_line = 0;
+			delta_char = from.start_char - start_char;
+		} else {
+			delta_line = line - from.line;
+			delta_char = start_char;
 		}
+		arr.push_back(delta_line);
+		arr.push_back(delta_char);
+		arr.push_back(length);
+		arr.push_back(type);
+		arr.push_back(modifiers);
+		return arr;
+	}
+};
+
+struct SemanticTokenCompare {
+	_FORCE_INLINE_ bool operator()(const SemanticTokenResult &l, const SemanticTokenResult &r) const {
+		if (l.line == r.line) {
+			return l.start_char < r.start_char;
+		}
+		return l.line < r.line;
+	}
+};
+
+void _add_class_members(const Vector<lsp::DocumentSymbol> p_children, Vector<SemanticTokenResult> &r_tokens) {
+	for (lsp::DocumentSymbol symbol : p_children) {
+		print_line(vformat(R"(Found child member %s)", symbol.name));
+		SemanticTokenResult res = SemanticTokenResult(&symbol);
+		r_tokens.push_back(res);
 		if (symbol.children.size() > 0) {
-			_evaluate_children(symbol, line, start_char, length, start_char_relative, line_relative, r_arr);
+			_add_class_members(symbol.children, r_tokens);
+		}
+	}
+}
+
+void _add_class_members(const ClassMembers &p_members, Vector<SemanticTokenResult> &r_tokens) {
+	for (const KeyValue<String, const lsp::DocumentSymbol *> &F : p_members) {
+		const lsp::DocumentSymbol *symbol = p_members.get(F.key);
+		print_line(vformat(R"(Found member %s)", symbol->name));
+		SemanticTokenResult res = SemanticTokenResult(symbol);
+		r_tokens.push_back(res);
+		if (symbol->children.size() > 0) {
+			_add_class_members(symbol->children, r_tokens);
 		}
 	}
 }
@@ -348,13 +395,22 @@ Dictionary GDScriptTextDocument::full(const Dictionary &p_params) {
 	Array arr;
 	if (HashMap<String, ExtendGDScriptParser *>::ConstIterator parser = GDScriptLanguageProtocol::get_singleton()->get_workspace()->scripts.find(path)) {
 		print_line("Got here");
-		lsp::DocumentSymbol class_symbol = parser->value->get_symbols();
-		int line = 0;
-		int start_char = 0;
-		int length = 0;
-		int start_char_relative = 0;
-		int line_relative = 0;
-		_evaluate_children(class_symbol, line, start_char, length, start_char_relative, line_relative, arr);
+		
+		const ClassMembers &members = parser->value->get_members();
+		Vector<SemanticTokenResult> semantic_tokens;
+		_add_class_members(members, semantic_tokens);
+		for (const KeyValue<String, ClassMembers> &E : parser->value->get_inner_classes()) {
+			const ClassMembers &inner_class = E.value;
+			_add_class_members(inner_class, semantic_tokens);
+		}
+
+		semantic_tokens.sort_custom<SemanticTokenCompare>();
+		if (semantic_tokens.size() > 0) {
+			arr.append_array(semantic_tokens.get(0).AsAbsolute());
+			for (int i = 1; i < semantic_tokens.size(); i++) {
+				arr.append_array(semantic_tokens.get(i).AsRelative(semantic_tokens.get(i - 1)));
+			}
+		}
 	}
 	result["data"] = arr;
 	print_line(result);
