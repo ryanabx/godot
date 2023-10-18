@@ -1444,10 +1444,6 @@ void GDScriptAnalyzer::resolve_class_body(GDScriptParser::ClassNode *p_class, co
 					}
 				}
 			}
-			// If the class is an interface, it cannot have any implemented / non-abstract functions
-			if (p_class->is_interface && implemented_funcs.size() > 0) {
-				push_error(vformat(R"*(Interface %s cannot contain non-abstract methods.)*", p_class->identifier == nullptr ? p_class->fqcn.get_file() : String(p_class->identifier->name)), p_class);		
-			}
 			if (base_class->base_type.kind == GDScriptParser::DataType::CLASS) {
 				base_class = base_class->base_type.class_type;
 			} else if (base_class->base_type.kind == GDScriptParser::DataType::SCRIPT) {
@@ -1457,6 +1453,37 @@ void GDScriptAnalyzer::resolve_class_body(GDScriptParser::ClassNode *p_class, co
 			} else {
 				break;
 			}
+		}
+		for (GDScriptParser::DataType imp_interface : p_class->implemented_types) {
+			if (imp_interface.kind == GDScriptParser::DataType::CLASS) {
+				base_class = imp_interface.class_type;
+			}
+			else if (imp_interface.kind == GDScriptParser::DataType::SCRIPT) {
+				Ref<GDScriptParserRef> parser_ref = get_parser_for(imp_interface.script_path);
+				ERR_BREAK(parser_ref.is_null());
+				base_class = parser_ref->get_parser()->head;
+			} else {
+				continue;
+			}
+			if (!base_class->is_interface) {
+				push_error(vformat(R"*(Cannot implement non-interface class %s.)*", base_class->identifier == nullptr ? base_class->fqcn.get_file() : String(base_class->identifier->name)), p_class);
+			}
+			for (GDScriptParser::ClassNode::Member member : base_class->members) {
+				if (member.type == GDScriptParser::ClassNode::Member::FUNCTION) {
+					if (member.function->is_abstract) {
+						if (!implemented_funcs.has(member.function->identifier->name)) {
+							push_error(vformat(R"*(Class %s must implement "%s" and other methods from interface %s, or be marked as @abstract.)*", p_class->identifier == nullptr ? p_class->fqcn.get_file() : String(p_class->identifier->name), vformat(R"(%s::%s)", base_class->identifier == nullptr ? base_class->fqcn.get_file() : String(base_class->identifier->name), member.function->identifier->name), base_class->identifier == nullptr ? base_class->fqcn.get_file() : String(base_class->identifier->name)), p_class);
+							break;
+						}
+					} else {
+						implemented_funcs.insert(member.function->identifier->name);
+					}
+				}
+			}
+		}
+		// If the class is an interface, it cannot have any implemented / non-abstract functions
+		if (p_class->is_interface && implemented_funcs.size() > 0) {
+			push_error(vformat(R"*(Interface %s cannot contain non-abstract methods.)*", p_class->identifier == nullptr ? p_class->fqcn.get_file() : String(p_class->identifier->name)), p_class);
 		}
 	}
 

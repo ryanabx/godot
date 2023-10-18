@@ -744,7 +744,38 @@ void GDScriptParser::parse_class_name() {
 
 void GDScriptParser::parse_implements() {
 	current_class->implements_used = true;
-	// TODO: Parse implements
+	do {
+		int chain_index = 0;
+		Vector<IdentifierNode *> implements_chain;
+
+		if (match(GDScriptTokenizer::Token::LITERAL)) {
+			if (previous.literal.get_type() != Variant::STRING) {
+				push_error(vformat(R"(Only strings or identifiers can be used after "implements", found "%s" instead.)", Variant::get_type_name(previous.literal.get_type())));
+			}
+			current_class->implements_paths.push_back(previous.literal);
+
+			if (!match(GDScriptTokenizer::Token::PERIOD)) {
+				current_class->implements.push_back(implements_chain);
+				return;
+			}
+		}
+
+		make_completion_context(COMPLETION_INHERIT_TYPE, current_class, chain_index++);
+
+		if (!consume(GDScriptTokenizer::Token::IDENTIFIER, R"(Expected superclass name after "implements".)")) {
+			return;
+		}
+		implements_chain.push_back(parse_identifier());
+
+		while (match(GDScriptTokenizer::Token::PERIOD)) {
+			make_completion_context(COMPLETION_INHERIT_TYPE, current_class, chain_index++);
+			if (!consume(GDScriptTokenizer::Token::IDENTIFIER, R"(Expected superclass name after ".".)")) {
+				return;
+			}
+			implements_chain.push_back(parse_identifier());
+		}
+		current_class->implements.push_back(implements_chain);
+	} while (match(GDScriptTokenizer::Token::COMMA));
 }
 
 void GDScriptParser::parse_extends() {
@@ -762,7 +793,7 @@ void GDScriptParser::parse_extends() {
 			return;
 		}
 	}
-
+	
 	make_completion_context(COMPLETION_INHERIT_TYPE, current_class, chain_index++);
 
 	if (!consume(GDScriptTokenizer::Token::IDENTIFIER, R"(Expected superclass name after "extends".)")) {
@@ -3749,6 +3780,7 @@ GDScriptParser::ParseRule *GDScriptParser::get_rule(GDScriptTokenizer::Token::Ty
 		{ nullptr,                                          nullptr,                                        PREC_NONE }, // ENUM,
 		{ nullptr,                                          nullptr,                                        PREC_NONE }, // EXTENDS,
 		{ &GDScriptParser::parse_lambda,                    nullptr,                                        PREC_NONE }, // FUNC,
+		{ nullptr,                                          nullptr,                                        PREC_NONE }, // IMPLEMENTS,
 		{ nullptr,                                          &GDScriptParser::parse_binary_operator,      	PREC_CONTENT_TEST }, // IN,
 		{ nullptr,                                          &GDScriptParser::parse_type_test,            	PREC_TYPE_TEST }, // IS,
 		{ nullptr,                                          nullptr,                                        PREC_NONE }, // NAMESPACE,

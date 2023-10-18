@@ -738,10 +738,15 @@ public:
 		bool is_interface = false;
 		bool has_static_data = false;
 		bool annotated_static_unload = false;
+		// Extends...
 		String extends_path;
 		Vector<IdentifierNode *> extends; // List for indexing: extends A.B.C
 		DataType base_type;
+		// Implements...
+		Vector<String> implements_paths;
+		Vector<Vector<IdentifierNode *>> implements; // Lists for indexing: implements A.B.C, D.E.F, etc.
 		Vector<DataType> implemented_types; // Interfaces
+
 		String fqcn; // Fully-qualified class name. Identifies uniquely any class in the project.
 #ifdef TOOLS_ENABLED
 		ClassDocData doc_data;
