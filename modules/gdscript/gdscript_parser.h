@@ -732,13 +732,16 @@ public:
 		HashMap<StringName, int> members_indices;
 		ClassNode *outer = nullptr;
 		bool extends_used = false;
+		bool implements_used = false;
 		bool onready_used = false;
 		bool is_abstract = false;
+		bool is_interface = false;
 		bool has_static_data = false;
 		bool annotated_static_unload = false;
 		String extends_path;
 		Vector<IdentifierNode *> extends; // List for indexing: extends A.B.C
 		DataType base_type;
+		Vector<DataType> implemented_types; // Interfaces
 		String fqcn; // Fully-qualified class name. Identifies uniquely any class in the project.
 #ifdef TOOLS_ENABLED
 		ClassDocData doc_data;
@@ -1448,6 +1451,7 @@ private:
 	void parse_program();
 	ClassNode *parse_class(bool p_is_static);
 	void parse_class_name();
+	void parse_implements();
 	void parse_extends();
 	void parse_class_body(bool p_is_multiline);
 	template <class T>
@@ -1465,6 +1469,7 @@ private:
 	void clear_unused_annotations();
 	bool tool_annotation(const AnnotationNode *p_annotation, Node *p_target, ClassNode *p_class);
 	bool icon_annotation(const AnnotationNode *p_annotation, Node *p_target, ClassNode *p_class);
+	bool interface_annotation(const AnnotationNode *p_annotation, Node *p_target, ClassNode *p_class);
 	bool abstract_annotation(const AnnotationNode *p_annotation, Node *p_target, ClassNode *p_class);
 	bool onready_annotation(const AnnotationNode *p_annotation, Node *p_target, ClassNode *p_class);
 	template <PropertyHint t_hint, Variant::Type t_type>

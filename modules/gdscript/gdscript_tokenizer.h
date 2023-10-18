@@ -117,6 +117,7 @@ public:
 			ENUM,
 			EXTENDS,
 			FUNC,
+			IMPLEMENTS,
 			IN,
 			IS,
 			NAMESPACE,

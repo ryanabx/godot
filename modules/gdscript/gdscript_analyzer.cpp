@@ -982,6 +982,10 @@ void GDScriptAnalyzer::resolve_class_member(GDScriptParser::ClassNode *p_class, 
 					}
 				}
 #endif
+				// Interfaces cannot have members other than functions, so we must check for those
+				if (p_class->is_interface) {
+					push_error(vformat(R"(Interface %s cannot contain declarations other than functions.)", p_class->identifier == nullptr ? p_class->fqcn.get_file() : String(p_class->identifier->name)), member.variable);
+				}
 			} break;
 			case GDScriptParser::ClassNode::Member::CONSTANT: {
 				check_class_member_name_conflict(p_class, member.constant->identifier->name, member.constant);
@@ -992,6 +996,10 @@ void GDScriptAnalyzer::resolve_class_member(GDScriptParser::ClassNode *p_class, 
 				for (GDScriptParser::AnnotationNode *&E : member.constant->annotations) {
 					resolve_annotation(E);
 					E->apply(parser, member.constant, p_class);
+				}
+				// Interfaces cannot have members other than functions, so we must check for those
+				if (p_class->is_interface) {
+					push_error(vformat(R"(Interface %s cannot contain declarations other than functions.)", p_class->identifier == nullptr ? p_class->fqcn.get_file() : String(p_class->identifier->name)), member.constant);
 				}
 			} break;
 			case GDScriptParser::ClassNode::Member::SIGNAL: {
@@ -1022,6 +1030,10 @@ void GDScriptAnalyzer::resolve_class_member(GDScriptParser::ClassNode *p_class, 
 				for (GDScriptParser::AnnotationNode *&E : member.signal->annotations) {
 					resolve_annotation(E);
 					E->apply(parser, member.signal, p_class);
+				}
+				// Interfaces cannot have members other than functions, so we must check for those
+				if (p_class->is_interface) {
+					push_error(vformat(R"(Interface %s cannot contain declarations other than functions.)", p_class->identifier == nullptr ? p_class->fqcn.get_file() : String(p_class->identifier->name)), member.signal);
 				}
 			} break;
 			case GDScriptParser::ClassNode::Member::ENUM: {
@@ -1070,6 +1082,10 @@ void GDScriptAnalyzer::resolve_class_member(GDScriptParser::ClassNode *p_class, 
 				for (GDScriptParser::AnnotationNode *&E : member.m_enum->annotations) {
 					resolve_annotation(E);
 					E->apply(parser, member.m_enum, p_class);
+				}
+				// Interfaces cannot have members other than functions, so we must check for those
+				if (p_class->is_interface) {
+					push_error(vformat(R"(Interface %s cannot contain declarations other than functions.)", p_class->identifier == nullptr ? p_class->fqcn.get_file() : String(p_class->identifier->name)), member.m_enum);
 				}
 			} break;
 			case GDScriptParser::ClassNode::Member::FUNCTION:
@@ -1427,6 +1443,10 @@ void GDScriptAnalyzer::resolve_class_body(GDScriptParser::ClassNode *p_class, co
 						implemented_funcs.insert(member.function->identifier->name);
 					}
 				}
+			}
+			// If the class is an interface, it cannot have any implemented / non-abstract functions
+			if (p_class->is_interface && implemented_funcs.size() > 0) {
+				push_error(vformat(R"*(Interface %s cannot contain non-abstract methods.)*", p_class->identifier == nullptr ? p_class->fqcn.get_file() : String(p_class->identifier->name)), p_class);		
 			}
 			if (base_class->base_type.kind == GDScriptParser::DataType::CLASS) {
 				base_class = base_class->base_type.class_type;
